@@ -1,22 +1,35 @@
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { insertPropertySchema } from "@shared/schema";
-import { Form } from "@/components/ui/form";
+import { insertPropertySchema, type InsertProperty } from "@shared/schema";
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
-import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { useLocation } from "wouter";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 export default function CreateListing() {
   const { toast } = useToast();
   const [, setLocation] = useLocation();
-  
-  const form = useForm({
+
+  const form = useForm<InsertProperty>({
     resolver: zodResolver(insertPropertySchema),
     defaultValues: {
       title: "",
@@ -26,11 +39,12 @@ export default function CreateListing() {
       roomType: "private",
       amenities: [],
       imageUrls: [],
+      available: true,
     },
   });
 
   const createMutation = useMutation({
-    mutationFn: async (data: any) => {
+    mutationFn: async (data: InsertProperty) => {
       const res = await apiRequest("POST", "/api/properties", data);
       return res.json();
     },
@@ -58,55 +72,98 @@ export default function CreateListing() {
           <CardTitle>Create New Listing</CardTitle>
         </CardHeader>
         <CardContent>
-          <Form
-            form={form}
-            onSubmit={(data) => createMutation.mutate(data)}
-          >
-            <div className="space-y-4">
-              <div>
-                <Label>Title</Label>
-                <Input {...form.register("title")} />
-              </div>
-              
-              <div>
-                <Label>Description</Label>
-                <Textarea {...form.register("description")} />
-              </div>
-              
-              <div>
-                <Label>Price per month</Label>
-                <Input
-                  type="number"
-                  {...form.register("price", { valueAsNumber: true })}
-                />
-              </div>
-              
-              <div>
-                <Label>Location</Label>
-                <Input {...form.register("location")} />
-              </div>
-              
-              <div>
-                <Label>Room Type</Label>
-                <select
-                  {...form.register("roomType")}
-                  className="w-full px-3 py-2 border rounded-md"
-                >
-                  <option value="private">Private Room</option>
-                  <option value="shared">Shared Room</option>
-                  <option value="entire">Entire Place</option>
-                </select>
-              </div>
-              
-              <Button
-                type="submit"
-                className="w-full"
-                disabled={createMutation.isPending}
-              >
-                Create Listing
-              </Button>
-            </div>
-          </Form>
+          <form onSubmit={form.handleSubmit((data) => createMutation.mutate(data))} className="space-y-4">
+            <FormField
+              control={form.control}
+              name="title"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Title</FormLabel>
+                  <FormControl>
+                    <Input {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="description"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Description</FormLabel>
+                  <FormControl>
+                    <Textarea {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="price"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Price per month</FormLabel>
+                  <FormControl>
+                    <Input
+                      type="number"
+                      {...field}
+                      onChange={(e) => field.onChange(parseInt(e.target.value))}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="location"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Location</FormLabel>
+                  <FormControl>
+                    <Input {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="roomType"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Room Type</FormLabel>
+                  <Select onValueChange={field.onChange} value={field.value}>
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select room type" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      <SelectItem value="private">Private Room</SelectItem>
+                      <SelectItem value="shared">Shared Room</SelectItem>
+                      <SelectItem value="entire">Entire Place</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <Button
+              type="submit"
+              className="w-full"
+              disabled={createMutation.isPending}
+            >
+              Create Listing
+            </Button>
+          </form>
         </CardContent>
       </Card>
     </div>
