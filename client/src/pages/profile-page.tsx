@@ -73,7 +73,7 @@ export default function ProfilePage() {
     },
   });
 
-  // Update form values when profile data is loaded
+  // Update form values when profile data is loaded or user changes
   useEffect(() => {
     if (profile) {
       // Reset form with fetched profile data
@@ -92,8 +92,25 @@ export default function ProfilePage() {
         roommateQualities: profile.roommateQualities ?? [],
         additionalInfo: profile.additionalInfo ?? "",
       });
+    } else {
+      // Reset form to empty values if no profile exists
+      form.reset({
+        fullName: "",
+        age: undefined,
+        occupation: "",
+        location: "",
+        budget: undefined,
+        hobbies: [],
+        interests: [],
+        lifestyle: undefined,
+        cleanliness: undefined,
+        smokingPreference: undefined,
+        petPreference: undefined,
+        roommateQualities: [],
+        additionalInfo: "",
+      });
     }
-  }, [profile, form]);
+  }, [profile, form, user?.id]); // Add user.id to dependencies to re-run when user changes
 
   // Watch arrays for updating UI
   const hobbies = form.watch("hobbies") || [];

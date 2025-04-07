@@ -120,18 +120,25 @@ export class MemStorage implements IStorage {
   async updateUserProfile(userId: number, updateData: Partial<InsertUserProfile>): Promise<UserProfile> {
     // Get profile ID directly from our mapping
     const profileId = this.userIdToProfileIdMap.get(userId);
-    const existingProfile = profileId !== undefined ? this.userProfiles.get(profileId) : undefined;
-
+    
+    // If we don't have a profile ID for this user yet, create a new profile instead
+    if (profileId === undefined) {
+      return this.createUserProfile(userId, updateData as InsertUserProfile);
+    }
+    
+    const existingProfile = this.userProfiles.get(profileId);
+    
+    // Double-check that we have an existing profile
     if (!existingProfile) {
-      // If no profile exists, create a new one with the update data
+      // If somehow we have a profile ID but no profile, create a new one with the update data
       return this.createUserProfile(userId, updateData as InsertUserProfile);
     }
 
     // Handle array fields separately to ensure proper typing
-    const hobbies = updateData.hobbies !== undefined ? updateData.hobbies : existingProfile.hobbies;
-    const interests = updateData.interests !== undefined ? updateData.interests : existingProfile.interests;
+    const hobbies = updateData.hobbies !== undefined ? updateData.hobbies : (existingProfile.hobbies ?? []);
+    const interests = updateData.interests !== undefined ? updateData.interests : (existingProfile.interests ?? []);
     const roommateQualities = updateData.roommateQualities !== undefined ? 
-      updateData.roommateQualities : existingProfile.roommateQualities;
+      updateData.roommateQualities : (existingProfile.roommateQualities ?? []);
 
     // Update the existing profile
     const updatedProfile: UserProfile = {
@@ -143,11 +150,12 @@ export class MemStorage implements IStorage {
       roommateQualities,
       profileComplete: Boolean(
         (updateData.fullName || existingProfile.fullName) && 
-        (interests || existingProfile.interests) && 
-        (hobbies || existingProfile.hobbies)
+        interests.length > 0 && 
+        hobbies.length > 0
       ),
     };
     
+    // Now profileId is definitely defined
     this.userProfiles.set(profileId, updatedProfile);
     return updatedProfile;
   }
