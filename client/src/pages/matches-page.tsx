@@ -260,7 +260,7 @@ export default function MatchesPage() {
                       <div>
                         <div className="text-sm font-medium mb-1">Hobbies</div>
                         <div className="flex flex-wrap gap-1">
-                          {match.hobbies.slice(0, 5).map((hobby, index) => (
+                          {match.hobbies.slice(0, 5).map((hobby: string, index: number) => (
                             <Badge key={index} variant="outline" className="text-xs">
                               {hobby}
                             </Badge>
@@ -278,7 +278,7 @@ export default function MatchesPage() {
                       <div>
                         <div className="text-sm font-medium mb-1">Interests</div>
                         <div className="flex flex-wrap gap-1">
-                          {match.interests.slice(0, 5).map((interest, index) => (
+                          {match.interests.slice(0, 5).map((interest: string, index: number) => (
                             <Badge key={index} variant="outline" className="text-xs">
                               {interest}
                             </Badge>

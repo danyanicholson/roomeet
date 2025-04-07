@@ -6,6 +6,12 @@ const app = express();
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 
+// Debugging middleware to log auth status
+app.use((req, _res, next) => {
+  console.log(`Request ${req.method} ${req.path}, Auth: ${req.isAuthenticated?.() || false}, User ID: ${req.user?.id}`);
+  next();
+});
+
 app.use((req, res, next) => {
   const start = Date.now();
   const path = req.path;

@@ -74,6 +74,12 @@ export class MemStorage implements IStorage {
 
   async createUserProfile(userId: number, insertProfile: InsertUserProfile): Promise<UserProfile> {
     const id = this.currentProfileId++;
+    
+    // Handle array fields with proper default values
+    const hobbies = insertProfile.hobbies ?? [];
+    const interests = insertProfile.interests ?? [];
+    const roommateQualities = insertProfile.roommateQualities ?? [];
+    
     const profile: UserProfile = {
       id,
       userId,
@@ -82,17 +88,17 @@ export class MemStorage implements IStorage {
       occupation: insertProfile.occupation ?? null,
       location: insertProfile.location ?? null, 
       budget: insertProfile.budget ?? null,
-      hobbies: insertProfile.hobbies ?? null,
-      interests: insertProfile.interests ?? null,
+      hobbies,
+      interests,
       lifestyle: insertProfile.lifestyle ?? null,
       cleanliness: insertProfile.cleanliness ?? null,
       smokingPreference: insertProfile.smokingPreference ?? null,
       petPreference: insertProfile.petPreference ?? null,
-      roommateQualities: insertProfile.roommateQualities ?? null,
+      roommateQualities,
       additionalInfo: insertProfile.additionalInfo ?? null,
       profileComplete: insertProfile.fullName !== null && 
-                      insertProfile.interests !== null && 
-                      insertProfile.hobbies !== null,
+                      interests.length > 0 && 
+                      hobbies.length > 0,
     };
     this.userProfiles.set(id, profile);
     return profile;
@@ -115,14 +121,24 @@ export class MemStorage implements IStorage {
       return this.createUserProfile(userId, updateData as InsertUserProfile);
     }
 
+    // Handle array fields separately to ensure proper typing
+    const hobbies = updateData.hobbies !== undefined ? updateData.hobbies : existingProfile.hobbies;
+    const interests = updateData.interests !== undefined ? updateData.interests : existingProfile.interests;
+    const roommateQualities = updateData.roommateQualities !== undefined ? 
+      updateData.roommateQualities : existingProfile.roommateQualities;
+
     // Update the existing profile
     const updatedProfile: UserProfile = {
       ...existingProfile,
       ...updateData,
+      // Explicitly assign array fields to ensure proper types
+      hobbies,
+      interests,
+      roommateQualities,
       profileComplete: Boolean(
         (updateData.fullName || existingProfile.fullName) && 
-        (updateData.interests || existingProfile.interests) && 
-        (updateData.hobbies || existingProfile.hobbies)
+        (interests || existingProfile.interests) && 
+        (hobbies || existingProfile.hobbies)
       ),
     };
     
@@ -144,6 +160,11 @@ export class MemStorage implements IStorage {
 
   async createProperty(userId: number, insertProperty: InsertProperty): Promise<Property> {
     const id = this.currentPropertyId++;
+    
+    // Handle array fields with proper default values
+    const imageUrls = insertProperty.imageUrls ?? [];
+    const amenities = insertProperty.amenities ?? [];
+    
     const property: Property = {
       id,
       userId,
@@ -152,8 +173,8 @@ export class MemStorage implements IStorage {
       price: insertProperty.price,
       location: insertProperty.location,
       roomType: insertProperty.roomType,
-      imageUrls: insertProperty.imageUrls ?? null,
-      amenities: insertProperty.amenities ?? null,
+      imageUrls,
+      amenities,
       available: insertProperty.available ?? true,
     };
     this.properties.set(id, property);

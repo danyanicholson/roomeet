@@ -16,8 +16,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
     const profile = await storage.getUserProfile(req.user!.id);
     if (!profile) {
-      res.status(404).send("Profile not found");
-      return;
+      // Return an empty profile if none exists yet
+      return res.json({
+        id: null,
+        userId: req.user!.id,
+        fullName: null,
+        age: null,
+        occupation: null,
+        location: null,
+        budget: null,
+        hobbies: [],
+        interests: [],
+        lifestyle: null,
+        cleanliness: null,
+        smokingPreference: null,
+        petPreference: null,
+        roommateQualities: [],
+        additionalInfo: null,
+        profileComplete: false
+      });
     }
     res.json(profile);
   });
