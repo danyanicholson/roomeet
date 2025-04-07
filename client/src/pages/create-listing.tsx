@@ -24,11 +24,15 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Loader2 } from "lucide-react";
+import { Loader2, Plus, X } from "lucide-react";
+import { useState } from "react";
+import { Badge } from "@/components/ui/badge";
 
 export default function CreateListing() {
   const { toast } = useToast();
   const [, setLocation] = useLocation();
+  const [amenityInput, setAmenityInput] = useState("");
+  const [imageUrlInput, setImageUrlInput] = useState("");
 
   const form = useForm<InsertProperty>({
     resolver: zodResolver(insertPropertySchema),
@@ -43,6 +47,37 @@ export default function CreateListing() {
       available: true,
     },
   });
+
+  const amenities = form.watch("amenities") || [];
+  const imageUrls = form.watch("imageUrls") || [];
+
+  const addAmenity = () => {
+    if (amenityInput.trim() === "") return;
+    const currentAmenities = [...amenities];
+    currentAmenities.push(amenityInput.trim());
+    form.setValue("amenities", currentAmenities);
+    setAmenityInput("");
+  };
+
+  const removeAmenity = (index: number) => {
+    const currentAmenities = [...amenities];
+    currentAmenities.splice(index, 1);
+    form.setValue("amenities", currentAmenities);
+  };
+
+  const addImageUrl = () => {
+    if (imageUrlInput.trim() === "") return;
+    const currentUrls = [...imageUrls];
+    currentUrls.push(imageUrlInput.trim());
+    form.setValue("imageUrls", currentUrls);
+    setImageUrlInput("");
+  };
+
+  const removeImageUrl = (index: number) => {
+    const currentUrls = [...imageUrls];
+    currentUrls.splice(index, 1);
+    form.setValue("imageUrls", currentUrls);
+  };
 
   const createMutation = useMutation({
     mutationFn: async (data: InsertProperty) => {
@@ -113,7 +148,7 @@ export default function CreateListing() {
                       <Input
                         type="number"
                         {...field}
-                        onChange={(e) => field.onChange(parseInt(e.target.value))}
+                        onChange={(e) => field.onChange(parseInt(e.target.value) || 0)}
                       />
                     </FormControl>
                     <FormMessage />
@@ -153,6 +188,82 @@ export default function CreateListing() {
                         <SelectItem value="entire">Entire Place</SelectItem>
                       </SelectContent>
                     </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              {/* Amenities Field */}
+              <FormField
+                control={form.control}
+                name="amenities"
+                render={() => (
+                  <FormItem>
+                    <FormLabel>Amenities</FormLabel>
+                    <div className="flex gap-2">
+                      <Input
+                        value={amenityInput}
+                        onChange={(e) => setAmenityInput(e.target.value)}
+                        placeholder="Add amenity (e.g. WiFi, Parking)"
+                      />
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="icon"
+                        onClick={addAmenity}
+                      >
+                        <Plus className="h-4 w-4" />
+                      </Button>
+                    </div>
+                    <div className="flex flex-wrap gap-2 mt-2">
+                      {amenities.map((amenity, index) => (
+                        <Badge key={index} variant="secondary" className="flex items-center gap-1">
+                          {amenity}
+                          <X
+                            className="h-3 w-3 cursor-pointer"
+                            onClick={() => removeAmenity(index)}
+                          />
+                        </Badge>
+                      ))}
+                    </div>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              {/* Image URLs Field */}
+              <FormField
+                control={form.control}
+                name="imageUrls"
+                render={() => (
+                  <FormItem>
+                    <FormLabel>Image URLs</FormLabel>
+                    <div className="flex gap-2">
+                      <Input
+                        value={imageUrlInput}
+                        onChange={(e) => setImageUrlInput(e.target.value)}
+                        placeholder="Add image URL"
+                      />
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="icon"
+                        onClick={addImageUrl}
+                      >
+                        <Plus className="h-4 w-4" />
+                      </Button>
+                    </div>
+                    <div className="flex flex-wrap gap-2 mt-2">
+                      {imageUrls.map((url, index) => (
+                        <Badge key={index} variant="secondary" className="flex items-center gap-1">
+                          {url.substring(0, 25)}...
+                          <X
+                            className="h-3 w-3 cursor-pointer"
+                            onClick={() => removeImageUrl(index)}
+                          />
+                        </Badge>
+                      ))}
+                    </div>
                     <FormMessage />
                   </FormItem>
                 )}
