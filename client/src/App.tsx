@@ -7,15 +7,17 @@ import NotFound from "@/pages/not-found";
 import AuthPage from "@/pages/auth-page";
 import HomePage from "@/pages/home-page";
 import { ProtectedRoute } from "./lib/protected-route";
-import CreateListing from "@/pages/create-listing";
 import Navbar from "@/components/ui/navbar";
+import ProfilePage from "@/pages/profile-page";
+import MatchesPage from "@/pages/matches-page";
 
 function Router() {
   return (
     <Switch>
       <Route path="/auth" component={AuthPage} />
-      <ProtectedRoute path="/" component={HomePage} />
-      <ProtectedRoute path="/create" component={CreateListing} />
+      <ProtectedRoute path="/" component={MatchesPage} />
+      <ProtectedRoute path="/profile" component={ProfilePage} />
+      <ProtectedRoute path="/matches" component={MatchesPage} />
       <Route component={NotFound} />
     </Switch>
   );
