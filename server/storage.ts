@@ -24,7 +24,8 @@ export interface IStorage {
 
 export class MemStorage implements IStorage {
   private users: Map<number, User>;
-  private userProfiles: Map<number, UserProfile>; // userId -> profile
+  private userProfiles: Map<number, UserProfile>; // Map with profile ID as key
+  private userIdToProfileIdMap: Map<number, number>; // Maps user ID to their profile ID
   private properties: Map<number, Property>;
   private currentUserId: number;
   private currentPropertyId: number;
@@ -34,6 +35,7 @@ export class MemStorage implements IStorage {
   constructor() {
     this.users = new Map();
     this.userProfiles = new Map();
+    this.userIdToProfileIdMap = new Map(); // Added this map to track which profile belongs to which user
     this.properties = new Map();
     this.currentUserId = 1;
     this.currentPropertyId = 1;
@@ -67,9 +69,16 @@ export class MemStorage implements IStorage {
   }
 
   async getUserProfile(userId: number): Promise<UserProfile | undefined> {
-    // Convert to array first to avoid iterator issues
-    const profiles = Array.from(this.userProfiles.values());
-    return profiles.find(profile => profile.userId === userId);
+    // Look up the profile ID from the user ID mapping
+    const profileId = this.userIdToProfileIdMap.get(userId);
+    
+    // If no profile ID exists for this user, they don't have a profile yet
+    if (profileId === undefined) {
+      return undefined;
+    }
+    
+    // Get the profile using the profile ID
+    return this.userProfiles.get(profileId);
   }
 
   async createUserProfile(userId: number, insertProfile: InsertUserProfile): Promise<UserProfile> {
@@ -100,21 +109,18 @@ export class MemStorage implements IStorage {
                       interests.length > 0 && 
                       hobbies.length > 0,
     };
+    
+    // Store the profile and update the user-to-profile mapping
     this.userProfiles.set(id, profile);
+    this.userIdToProfileIdMap.set(userId, id);
+    
     return profile;
   }
 
   async updateUserProfile(userId: number, updateData: Partial<InsertUserProfile>): Promise<UserProfile> {
-    let existingProfile: UserProfile | undefined;
-    let profileId: number = 0;
-    
-    // Find the existing profile using Array.from to avoid iterator issues
-    const profiles = Array.from(this.userProfiles.entries());
-    const foundProfile = profiles.find(([, profile]) => profile.userId === userId);
-    
-    if (foundProfile) {
-      [profileId, existingProfile] = foundProfile;
-    }
+    // Get profile ID directly from our mapping
+    const profileId = this.userIdToProfileIdMap.get(userId);
+    const existingProfile = profileId !== undefined ? this.userProfiles.get(profileId) : undefined;
 
     if (!existingProfile) {
       // If no profile exists, create a new one with the update data
