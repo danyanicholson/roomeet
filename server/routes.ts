@@ -23,6 +23,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   app.post("/api/profile", async (req, res) => {
+    console.log("Profile save request, auth status:", req.isAuthenticated(), "user:", req.user);
     if (!req.isAuthenticated()) {
       res.status(401).send("Unauthorized");
       return;
