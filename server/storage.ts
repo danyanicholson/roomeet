@@ -22,6 +22,9 @@ export interface IStorage {
   sessionStore: session.Store;
 }
 
+// Helper type to ensure array fields are always string arrays, never null
+type NonNullStringArray = string[];
+
 export class MemStorage implements IStorage {
   private users: Map<number, User>;
   private userProfiles: Map<number, UserProfile>; // Map with profile ID as key
@@ -85,9 +88,9 @@ export class MemStorage implements IStorage {
     const id = this.currentProfileId++;
     
     // Handle array fields with proper default values
-    const hobbies = insertProfile.hobbies ?? [];
-    const interests = insertProfile.interests ?? [];
-    const roommateQualities = insertProfile.roommateQualities ?? [];
+    const hobbies: string[] = insertProfile.hobbies ?? [];
+    const interests: string[] = insertProfile.interests ?? [];
+    const roommateQualities: string[] = insertProfile.roommateQualities ?? [];
     
     const profile: UserProfile = {
       id,
@@ -135,10 +138,10 @@ export class MemStorage implements IStorage {
     }
 
     // Handle array fields separately to ensure proper typing
-    const hobbies = updateData.hobbies !== undefined ? updateData.hobbies : (existingProfile.hobbies ?? []);
-    const interests = updateData.interests !== undefined ? updateData.interests : (existingProfile.interests ?? []);
-    const roommateQualities = updateData.roommateQualities !== undefined ? 
-      updateData.roommateQualities : (existingProfile.roommateQualities ?? []);
+    const hobbies: string[] = updateData.hobbies !== undefined ? (updateData.hobbies ?? []) : (existingProfile.hobbies ?? []);
+    const interests: string[] = updateData.interests !== undefined ? (updateData.interests ?? []) : (existingProfile.interests ?? []);
+    const roommateQualities: string[] = updateData.roommateQualities !== undefined ? 
+      (updateData.roommateQualities ?? []) : (existingProfile.roommateQualities ?? []);
 
     // Update the existing profile
     const updatedProfile: UserProfile = {
@@ -150,8 +153,8 @@ export class MemStorage implements IStorage {
       roommateQualities,
       profileComplete: Boolean(
         (updateData.fullName || existingProfile.fullName) && 
-        interests.length > 0 && 
-        hobbies.length > 0
+        interests && interests.length > 0 && 
+        hobbies && hobbies.length > 0
       ),
     };
     

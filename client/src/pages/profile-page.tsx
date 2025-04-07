@@ -29,13 +29,35 @@ import { Badge } from "@/components/ui/badge";
 import { Plus, X, Loader2 } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 
+// Predefined options for selection
+const HOBBY_OPTIONS = [
+  "Reading", "Gaming", "Cooking", "Baking", "Hiking", "Biking", 
+  "Photography", "Painting", "Drawing", "Playing Music", "Dancing",
+  "Yoga", "Meditation", "Gardening", "DIY Projects", "Watching Movies",
+  "Sports", "Traveling", "Writing", "Woodworking", "Knitting"
+];
+
+const INTEREST_OPTIONS = [
+  "Technology", "Science", "History", "Politics", "Philosophy",
+  "Art", "Music", "Film", "Literature", "Theater", "Fashion",
+  "Food & Drink", "Health & Fitness", "Environment", "Animals",
+  "Education", "Business", "Economics", "Psychology", "Sociology"
+];
+
+const ROOMMATE_QUALITY_OPTIONS = [
+  "Respectful", "Clean", "Organized", "Communicative", "Considerate",
+  "Reliable", "Responsible", "Trustworthy", "Easygoing", "Quiet",
+  "Fun", "Social", "Friendly", "Financially stable", "Mature",
+  "Non-judgmental", "Adaptable", "Open-minded", "Supportive", "Independent"
+];
+
 export default function ProfilePage() {
   const { toast } = useToast();
   const { user } = useAuth();
   const [, setLocation] = useLocation();
-  const [hobbyInput, setHobbyInput] = useState("");
-  const [interestInput, setInterestInput] = useState("");
-  const [qualityInput, setQualityInput] = useState("");
+  const [showHobbySelect, setShowHobbySelect] = useState(false);
+  const [showInterestSelect, setShowInterestSelect] = useState(false);
+  const [showQualitySelect, setShowQualitySelect] = useState(false);
 
   // Fetch existing profile data
   const { data: profile, isLoading } = useQuery({
@@ -118,12 +140,13 @@ export default function ProfilePage() {
   const roommateQualities = form.watch("roommateQualities") || [];
 
   // Add/remove functions for array fields
-  const addHobby = () => {
-    if (hobbyInput.trim() === "") return;
+  const addHobby = (hobby: string) => {
+    if (!hobby) return;
+    if (hobbies.includes(hobby)) return; // Prevent duplicates
     const currentHobbies = [...hobbies];
-    currentHobbies.push(hobbyInput.trim());
+    currentHobbies.push(hobby);
     form.setValue("hobbies", currentHobbies);
-    setHobbyInput("");
+    setShowHobbySelect(false);
   };
 
   const removeHobby = (index: number) => {
@@ -132,12 +155,13 @@ export default function ProfilePage() {
     form.setValue("hobbies", currentHobbies);
   };
 
-  const addInterest = () => {
-    if (interestInput.trim() === "") return;
+  const addInterest = (interest: string) => {
+    if (!interest) return;
+    if (interests.includes(interest)) return; // Prevent duplicates
     const currentInterests = [...interests];
-    currentInterests.push(interestInput.trim());
+    currentInterests.push(interest);
     form.setValue("interests", currentInterests);
-    setInterestInput("");
+    setShowInterestSelect(false);
   };
 
   const removeInterest = (index: number) => {
@@ -146,12 +170,13 @@ export default function ProfilePage() {
     form.setValue("interests", currentInterests);
   };
 
-  const addQuality = () => {
-    if (qualityInput.trim() === "") return;
+  const addQuality = (quality: string) => {
+    if (!quality) return;
+    if (roommateQualities.includes(quality)) return; // Prevent duplicates
     const currentQualities = [...roommateQualities];
-    currentQualities.push(qualityInput.trim());
+    currentQualities.push(quality);
     form.setValue("roommateQualities", currentQualities);
-    setQualityInput("");
+    setShowQualitySelect(false);
   };
 
   const removeQuality = (index: number) => {
@@ -218,7 +243,7 @@ export default function ProfilePage() {
                       <FormItem>
                         <FormLabel>Full Name</FormLabel>
                         <FormControl>
-                          <Input {...field} />
+                          <Input {...field} value={field.value || ""} />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -252,7 +277,7 @@ export default function ProfilePage() {
                         <FormItem>
                           <FormLabel>Occupation</FormLabel>
                           <FormControl>
-                            <Input {...field} />
+                            <Input {...field} value={field.value || ""} />
                           </FormControl>
                           <FormMessage />
                         </FormItem>
@@ -268,7 +293,7 @@ export default function ProfilePage() {
                         <FormItem>
                           <FormLabel>Location</FormLabel>
                           <FormControl>
-                            <Input {...field} placeholder="City, State" />
+                            <Input {...field} value={field.value || ""} placeholder="City, State" />
                           </FormControl>
                           <FormMessage />
                         </FormItem>
@@ -410,26 +435,40 @@ export default function ProfilePage() {
                       <FormItem>
                         <FormLabel>Hobbies</FormLabel>
                         <div className="flex gap-2">
-                          <Input
-                            value={hobbyInput}
-                            onChange={(e) => setHobbyInput(e.target.value)}
-                            placeholder="Add a hobby (e.g., Cooking, Gaming)"
-                            onKeyDown={(e) => {
-                              if (e.key === 'Enter') {
-                                e.preventDefault();
-                                addHobby();
-                              }
-                            }}
-                          />
                           <Button
                             type="button"
                             variant="outline"
-                            size="icon"
-                            onClick={addHobby}
+                            onClick={() => setShowHobbySelect(!showHobbySelect)}
+                            className="flex gap-2 items-center"
                           >
                             <Plus className="h-4 w-4" />
+                            Add Hobby
                           </Button>
                         </div>
+                        
+                        {showHobbySelect && (
+                          <div className="border rounded-md p-3 mt-2 bg-card">
+                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2">
+                              {HOBBY_OPTIONS
+                                .filter(hobby => !hobbies.includes(hobby))
+                                .map(hobby => (
+                                <Button
+                                  key={hobby}
+                                  type="button"
+                                  variant="ghost"
+                                  className="justify-start h-auto py-1.5 text-sm"
+                                  onClick={(e) => {
+                                    e.preventDefault();
+                                    addHobby(hobby);
+                                  }}
+                                >
+                                  {hobby}
+                                </Button>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                        
                         <div className="flex flex-wrap gap-2 mt-2">
                           {hobbies.map((hobby, index) => (
                             <Badge key={index} variant="secondary" className="flex items-center gap-1">
@@ -453,26 +492,40 @@ export default function ProfilePage() {
                       <FormItem>
                         <FormLabel>Interests</FormLabel>
                         <div className="flex gap-2">
-                          <Input
-                            value={interestInput}
-                            onChange={(e) => setInterestInput(e.target.value)}
-                            placeholder="Add an interest (e.g., Music, Art)"
-                            onKeyDown={(e) => {
-                              if (e.key === 'Enter') {
-                                e.preventDefault();
-                                addInterest();
-                              }
-                            }}
-                          />
                           <Button
                             type="button"
                             variant="outline"
-                            size="icon"
-                            onClick={addInterest}
+                            onClick={() => setShowInterestSelect(!showInterestSelect)}
+                            className="flex gap-2 items-center"
                           >
                             <Plus className="h-4 w-4" />
+                            Add Interest
                           </Button>
                         </div>
+                        
+                        {showInterestSelect && (
+                          <div className="border rounded-md p-3 mt-2 bg-card">
+                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2">
+                              {INTEREST_OPTIONS
+                                .filter(interest => !interests.includes(interest))
+                                .map(interest => (
+                                <Button
+                                  key={interest}
+                                  type="button"
+                                  variant="ghost"
+                                  className="justify-start h-auto py-1.5 text-sm"
+                                  onClick={(e) => {
+                                    e.preventDefault();
+                                    addInterest(interest);
+                                  }}
+                                >
+                                  {interest}
+                                </Button>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                        
                         <div className="flex flex-wrap gap-2 mt-2">
                           {interests.map((interest, index) => (
                             <Badge key={index} variant="secondary" className="flex items-center gap-1">
@@ -501,26 +554,40 @@ export default function ProfilePage() {
                       <FormItem>
                         <FormLabel>Desired Roommate Qualities</FormLabel>
                         <div className="flex gap-2">
-                          <Input
-                            value={qualityInput}
-                            onChange={(e) => setQualityInput(e.target.value)}
-                            placeholder="Add quality (e.g., Clean, Respectful)"
-                            onKeyDown={(e) => {
-                              if (e.key === 'Enter') {
-                                e.preventDefault();
-                                addQuality();
-                              }
-                            }}
-                          />
                           <Button
                             type="button"
                             variant="outline"
-                            size="icon"
-                            onClick={addQuality}
+                            onClick={() => setShowQualitySelect(!showQualitySelect)}
+                            className="flex gap-2 items-center"
                           >
                             <Plus className="h-4 w-4" />
+                            Add Roommate Quality
                           </Button>
                         </div>
+                        
+                        {showQualitySelect && (
+                          <div className="border rounded-md p-3 mt-2 bg-card">
+                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2">
+                              {ROOMMATE_QUALITY_OPTIONS
+                                .filter(quality => !roommateQualities.includes(quality))
+                                .map(quality => (
+                                <Button
+                                  key={quality}
+                                  type="button"
+                                  variant="ghost"
+                                  className="justify-start h-auto py-1.5 text-sm"
+                                  onClick={(e) => {
+                                    e.preventDefault();
+                                    addQuality(quality);
+                                  }}
+                                >
+                                  {quality}
+                                </Button>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                        
                         <div className="flex flex-wrap gap-2 mt-2">
                           {roommateQualities.map((quality, index) => (
                             <Badge key={index} variant="secondary" className="flex items-center gap-1">
@@ -546,6 +613,7 @@ export default function ProfilePage() {
                         <FormControl>
                           <Textarea
                             {...field}
+                            value={field.value || ""}
                             placeholder="Share anything else that potential roommates should know about you"
                             className="h-24"
                           />
