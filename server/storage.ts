@@ -61,6 +61,7 @@ export class MemStorage implements IStorage {
   sessionStore: session.Store;
 
   constructor() {
+    console.log("Initializing MemStorage...");
     this.users = new Map();
     this.userProfiles = new Map();
     this.userIdToProfileIdMap = new Map(); // Added this map to track which profile belongs to which user
@@ -74,6 +75,15 @@ export class MemStorage implements IStorage {
     this.currentConversationId = 1;
     this.sessionStore = new MemoryStore({
       checkPeriod: 86400000,
+    });
+    console.log("MemStorage initialization complete");
+    console.log("Storage maps initialized:", {
+      users: this.users.size,
+      userProfiles: this.userProfiles.size,
+      userIdToProfileIdMap: this.userIdToProfileIdMap.size,
+      properties: this.properties.size,
+      messages: this.messages.size,
+      conversations: this.conversations.size
     });
   }
 
@@ -242,46 +252,73 @@ export class MemStorage implements IStorage {
   // Messaging methods
   
   async getConversation(user1Id: number, user2Id: number): Promise<Conversation | undefined> {
+    console.log(`getConversation called for users ${user1Id} and ${user2Id}`);
+    
     // Make sure we have a consistent order for user IDs to avoid duplicate conversations
     const [smallerId, largerId] = user1Id < user2Id ? [user1Id, user2Id] : [user2Id, user1Id];
+    console.log(`Normalized user IDs: smaller=${smallerId}, larger=${largerId}`);
     
     // Find a conversation with these two users
     const conversation = Array.from(this.conversations.values()).find(
       conv => (conv.user1Id === smallerId && conv.user2Id === largerId)
     );
     
+    console.log(conversation 
+      ? `Found existing conversation: ${JSON.stringify(conversation, null, 2)}` 
+      : `No conversation found between users ${smallerId} and ${largerId}`);
+    
     return conversation;
   }
   
   async getConversationById(id: number): Promise<Conversation | undefined> {
-    return this.conversations.get(id);
+    console.log(`getConversationById called for ID ${id}`);
+    const conversation = this.conversations.get(id);
+    console.log(conversation 
+      ? `Found conversation: ${JSON.stringify(conversation, null, 2)}` 
+      : `No conversation found with ID ${id}`);
+    return conversation;
   }
   
   async getUserConversations(userId: number): Promise<Conversation[]> {
-    return Array.from(this.conversations.values()).filter(
+    console.log(`getUserConversations called for user ${userId}`);
+    
+    const allConversations = Array.from(this.conversations.values());
+    console.log(`Total conversations in storage: ${allConversations.length}`);
+    
+    const userConversations = allConversations.filter(
       conv => conv.user1Id === userId || conv.user2Id === userId
     );
+    
+    console.log(`Found ${userConversations.length} conversations for user ${userId}`);
+    return userConversations;
   }
   
   async createOrUpdateConversation(user1Id: number, user2Id: number): Promise<Conversation> {
+    console.log(`createOrUpdateConversation called for users ${user1Id} and ${user2Id}`);
+    
     // Make sure we have a consistent order for user IDs to avoid duplicate conversations
     const [smallerId, largerId] = user1Id < user2Id ? [user1Id, user2Id] : [user2Id, user1Id];
+    console.log(`Normalized user IDs: smaller=${smallerId}, larger=${largerId}`);
     
     // Check if a conversation already exists
     const existingConversation = await this.getConversation(smallerId, largerId);
     
     if (existingConversation) {
+      console.log(`Updating existing conversation ID ${existingConversation.id}`);
       // Update the last message timestamp
       const updatedConversation: Conversation = {
         ...existingConversation,
         lastMessageAt: new Date(),
       };
       this.conversations.set(existingConversation.id, updatedConversation);
+      console.log(`Updated conversation: ${JSON.stringify(updatedConversation, null, 2)}`);
       return updatedConversation;
     }
     
     // Create a new conversation
     const id = this.currentConversationId++;
+    console.log(`Creating new conversation with ID ${id}`);
+    
     const newConversation: Conversation = {
       id,
       user1Id: smallerId,
@@ -291,14 +328,27 @@ export class MemStorage implements IStorage {
     };
     
     this.conversations.set(id, newConversation);
+    console.log(`Created new conversation: ${JSON.stringify(newConversation, null, 2)}`);
+    
+    // Log all current conversations after this update
+    console.log(`Current conversations in storage: ${Array.from(this.conversations.values()).length}`);
+    
     return newConversation;
   }
   
   async getMessages(conversationId: number): Promise<Message[]> {
-    const conversation = await this.getConversationById(conversationId);
-    if (!conversation) return [];
+    console.log(`getMessages called for conversation ${conversationId}`);
     
-    return Array.from(this.messages.values())
+    const conversation = await this.getConversationById(conversationId);
+    if (!conversation) {
+      console.log(`No conversation found with ID ${conversationId}, returning empty message array`);
+      return [];
+    }
+    
+    const allMessages = Array.from(this.messages.values());
+    console.log(`Total messages in storage: ${allMessages.length}`);
+    
+    const conversationMessages = allMessages
       .filter(message => 
         // Find messages that belong to the specific conversation
         // by checking if they involve both users of the conversation
@@ -308,14 +358,20 @@ export class MemStorage implements IStorage {
         )
       )
       .sort((a, b) => new Date(a.createdAt || Date.now()).getTime() - new Date(b.createdAt || Date.now()).getTime());
+    
+    console.log(`Found ${conversationMessages.length} messages for conversation ${conversationId}`);
+    return conversationMessages;
   }
   
   async sendMessage(message: InsertMessage): Promise<Message> {
+    console.log(`sendMessage called with data: ${JSON.stringify(message, null, 2)}`);
+    
     // Ensure we have a conversation between these users
     const conversation = await this.createOrUpdateConversation(
       message.senderId, 
       message.receiverId
     );
+    console.log(`Message will be added to conversation ID ${conversation.id}`);
     
     // Create the message
     const id = this.currentMessageId++;
@@ -328,6 +384,8 @@ export class MemStorage implements IStorage {
       createdAt: new Date(),
     };
     
+    console.log(`Created new message with ID ${id}: ${JSON.stringify(newMessage, null, 2)}`);
+    
     // Update the conversation's last message time and unread count
     const updatedConversation: Conversation = {
       ...conversation,
@@ -338,31 +396,48 @@ export class MemStorage implements IStorage {
     this.messages.set(id, newMessage);
     this.conversations.set(conversation.id, updatedConversation);
     
+    console.log(`Updated conversation: ${JSON.stringify(updatedConversation, null, 2)}`);
+    console.log(`Total messages in storage after adding: ${this.messages.size}`);
+    
     return newMessage;
   }
   
   async markMessagesAsRead(conversationId: number, userId: number): Promise<void> {
+    console.log(`markMessagesAsRead called for conversation ${conversationId} and user ${userId}`);
+    
     const conversation = await this.getConversationById(conversationId);
-    if (!conversation) return;
+    if (!conversation) {
+      console.log(`No conversation found with ID ${conversationId}, cannot mark messages as read`);
+      return;
+    }
     
     // Update messages
-    Array.from(this.messages.values())
-      .filter(message => 
-        // Mark as read if the user is the receiver of the message
-        message.receiverId === userId &&
-        // and if the message belongs to this conversation
-        ((message.senderId === conversation.user1Id && message.receiverId === conversation.user2Id) ||
-         (message.senderId === conversation.user2Id && message.receiverId === conversation.user1Id))
-      )
-      .forEach(message => {
-        if (!message.read) {
-          const updatedMessage: Message = {
-            ...message,
-            read: true
-          };
-          this.messages.set(message.id, updatedMessage);
-        }
-      });
+    const allMessages = Array.from(this.messages.values());
+    console.log(`Total messages in storage: ${allMessages.length}`);
+    
+    const messagesToMark = allMessages.filter(message => 
+      // Mark as read if the user is the receiver of the message
+      message.receiverId === userId &&
+      // and if the message belongs to this conversation
+      ((message.senderId === conversation.user1Id && message.receiverId === conversation.user2Id) ||
+       (message.senderId === conversation.user2Id && message.receiverId === conversation.user1Id))
+    );
+    
+    console.log(`Found ${messagesToMark.length} messages to mark as read`);
+    
+    let markedCount = 0;
+    messagesToMark.forEach(message => {
+      if (!message.read) {
+        const updatedMessage: Message = {
+          ...message,
+          read: true
+        };
+        this.messages.set(message.id, updatedMessage);
+        markedCount++;
+      }
+    });
+    
+    console.log(`Marked ${markedCount} messages as read`);
     
     // Reset unread count on the conversation
     const updatedConversation: Conversation = {
@@ -371,6 +446,7 @@ export class MemStorage implements IStorage {
     };
     
     this.conversations.set(conversationId, updatedConversation);
+    console.log(`Updated conversation unread count to 0: ${JSON.stringify(updatedConversation, null, 2)}`);
   }
 }
 

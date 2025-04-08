@@ -34,6 +34,16 @@ export default function MessagingPage() {
     queryKey: ["/api/conversations"],
     staleTime: 10000, // 10 seconds
     refetchInterval: 10000, // Poll for new conversations every 10 seconds
+    retry: 3, // Retry 3 times if the query fails
+    retryDelay: 1000, // Wait 1 second between retries
+    onError: (error) => {
+      console.error("Error fetching conversations:", error);
+      toast({
+        title: "Error fetching conversations",
+        description: "Please try again later",
+        variant: "destructive",
+      });
+    }
   });
   
   // Fetch messages for selected conversation
@@ -42,6 +52,16 @@ export default function MessagingPage() {
     enabled: !!selectedConversation,
     staleTime: 5000, // 5 seconds
     refetchInterval: 5000, // Poll for new messages every 5 seconds
+    retry: 3, // Retry 3 times if the query fails
+    retryDelay: 1000, // Wait 1 second between retries
+    onError: (error) => {
+      console.error("Error fetching messages:", error);
+      toast({
+        title: "Error fetching messages",
+        description: "Please try again later",
+        variant: "destructive",
+      });
+    }
   });
   
   // Send message mutation
