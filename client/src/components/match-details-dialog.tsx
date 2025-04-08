@@ -30,22 +30,50 @@ export function MatchDetailsDialog({ userProfile, matchProfile, matchPercentage 
   const startConversationMutation = useMutation({
     mutationFn: async (otherUserId: number) => {
       console.log("Starting conversation with user ID:", otherUserId);
-      const res = await apiRequest("POST", "/api/conversations", { otherUserId });
-      console.log("Conversation response:", await res.clone().text());
-      return await res.json();
+      // Make sure the otherUserId is a number, not a string
+      const userId = typeof otherUserId === 'string' ? parseInt(otherUserId) : otherUserId;
+      
+      const res = await apiRequest("POST", "/api/conversations", { otherUserId: userId });
+      
+      try {
+        const textResponse = await res.clone().text();
+        console.log("Conversation response text:", textResponse);
+        
+        // Try to parse as JSON
+        const jsonData = JSON.parse(textResponse);
+        console.log("Parsed conversation data:", jsonData);
+        return jsonData;
+      } catch (parseError) {
+        console.error("Error parsing response:", parseError);
+        const originalResponse = await res.text();
+        console.log("Original response:", originalResponse);
+        throw new Error("Failed to parse server response");
+      }
     },
     onSuccess: (data) => {
       console.log("Conversation started successfully:", data);
       toast({
         title: "Conversation started",
-        description: `You can now message ${matchProfile.fullName}`,
+        description: `You can now message ${matchProfile.fullName || 'your match'}`,
       });
-      setLocation("/messaging");
+      // Close the dialog and go to messaging page
+      const dialogElement = document.querySelector('[role="dialog"]');
+      if (dialogElement) {
+        const closeButton = dialogElement.querySelector('button[data-state="open"]');
+        if (closeButton && closeButton instanceof HTMLElement) {
+          closeButton.click();
+        }
+      }
+      
+      // Small delay to ensure dialog closes before navigation
+      setTimeout(() => {
+        setLocation("/messaging");
+      }, 300);
     },
     onError: (error: Error) => {
       console.error("Error starting conversation:", error);
       toast({
-        title: "Error",
+        title: "Error starting conversation",
         description: error.message,
         variant: "destructive",
       });

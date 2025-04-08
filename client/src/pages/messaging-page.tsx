@@ -36,14 +36,6 @@ export default function MessagingPage() {
     refetchInterval: 10000, // Poll for new conversations every 10 seconds
     retry: 3, // Retry 3 times if the query fails
     retryDelay: 1000, // Wait 1 second between retries
-    onError: (error) => {
-      console.error("Error fetching conversations:", error);
-      toast({
-        title: "Error fetching conversations",
-        description: "Please try again later",
-        variant: "destructive",
-      });
-    }
   });
   
   // Fetch messages for selected conversation
@@ -54,14 +46,6 @@ export default function MessagingPage() {
     refetchInterval: 5000, // Poll for new messages every 5 seconds
     retry: 3, // Retry 3 times if the query fails
     retryDelay: 1000, // Wait 1 second between retries
-    onError: (error) => {
-      console.error("Error fetching messages:", error);
-      toast({
-        title: "Error fetching messages",
-        description: "Please try again later",
-        variant: "destructive",
-      });
-    }
   });
   
   // Send message mutation
@@ -69,21 +53,56 @@ export default function MessagingPage() {
     mutationFn: async (content: string) => {
       if (!selectedConversation) throw new Error("No conversation selected");
       
+      console.log("Sending message to user ID:", selectedConversation.otherUser.id);
+      console.log("Message content:", content);
+      
       const message = {
         content,
         receiverId: selectedConversation.otherUser.id,
       };
       
       const res = await apiRequest("POST", "/api/messages", message);
-      return await res.json();
+      
+      try {
+        const clone = res.clone();
+        const textResponse = await clone.text();
+        console.log("Send message response text:", textResponse);
+        
+        // Try to parse the response as JSON
+        const jsonData = JSON.parse(textResponse);
+        console.log("Parsed message data:", jsonData);
+        return jsonData;
+      } catch (parseError) {
+        console.error("Error parsing response:", parseError);
+        // Fall back to the original response
+        return await res.json();
+      }
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
+      console.log("Message sent successfully:", data);
       // Clear input and refresh messages
       setMessageInput("");
-      queryClient.invalidateQueries({ queryKey: ["/api/conversations", selectedConversation?.id, "messages"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/conversations"] });
+      
+      // Force an immediate refetch of messages
+      queryClient.invalidateQueries({ 
+        queryKey: ["/api/conversations", selectedConversation?.id, "messages"],
+        refetchType: 'active',
+      });
+      queryClient.invalidateQueries({ 
+        queryKey: ["/api/conversations"],
+        refetchType: 'active', 
+      });
+      
+      // Add a small delay and trigger another refetch to ensure messages update
+      setTimeout(() => {
+        queryClient.invalidateQueries({ 
+          queryKey: ["/api/conversations", selectedConversation?.id, "messages"],
+          refetchType: 'all',
+        });
+      }, 500);
     },
     onError: (error: Error) => {
+      console.error("Failed to send message:", error);
       toast({
         title: "Failed to send message",
         description: error.message,
