@@ -151,19 +151,26 @@ export class MemStorage implements IStorage {
   }
 
   async updateUserProfile(userId: number, updateData: Partial<InsertUserProfile>): Promise<UserProfile> {
+    console.log("Updating user profile for userId:", userId);
+    console.log("Update data received:", JSON.stringify(updateData, null, 2));
+    console.log("idealLocation value:", updateData.idealLocation);
+    
     // Get profile ID directly from our mapping
     const profileId = this.userIdToProfileIdMap.get(userId);
     
     // If we don't have a profile ID for this user yet, create a new profile instead
     if (profileId === undefined) {
+      console.log("No existing profile found, creating a new one");
       return this.createUserProfile(userId, updateData as InsertUserProfile);
     }
     
     const existingProfile = this.userProfiles.get(profileId);
+    console.log("Existing profile:", JSON.stringify(existingProfile, null, 2));
     
     // Double-check that we have an existing profile
     if (!existingProfile) {
       // If somehow we have a profile ID but no profile, create a new one with the update data
+      console.log("Profile ID exists but no profile found, creating a new one");
       return this.createUserProfile(userId, updateData as InsertUserProfile);
     }
 
@@ -177,6 +184,8 @@ export class MemStorage implements IStorage {
     const updatedProfile: UserProfile = {
       ...existingProfile,
       ...updateData,
+      // Explicitly ensure idealLocation is included
+      idealLocation: updateData.idealLocation !== undefined ? updateData.idealLocation : existingProfile.idealLocation,
       // Explicitly assign array fields to ensure proper types
       hobbies,
       interests,
@@ -187,6 +196,8 @@ export class MemStorage implements IStorage {
         hobbies && hobbies.length > 0
       ),
     };
+    
+    console.log("Updated profile to be saved:", JSON.stringify(updatedProfile, null, 2));
     
     // Now profileId is definitely defined
     this.userProfiles.set(profileId, updatedProfile);

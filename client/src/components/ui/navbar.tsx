@@ -46,9 +46,9 @@ export default function Navbar() {
                 <span>Profile</span>
               </Button>
             </Link>
-            <Link href="/messages">
+            <Link href="/messaging">
               <Button 
-                variant={location === "/messages" ? "default" : "ghost"}
+                variant={location === "/messaging" ? "default" : "ghost"}
                 size="sm"
                 className="flex gap-1 items-center"
               >
@@ -91,7 +91,7 @@ export default function Navbar() {
                 </Link>
               </DropdownMenuItem>
               <DropdownMenuItem asChild>
-                <Link href="/messages">
+                <Link href="/messaging">
                   <div className="flex items-center cursor-pointer w-full">
                     <MessageSquare className="w-4 h-4 mr-2" />
                     Messages

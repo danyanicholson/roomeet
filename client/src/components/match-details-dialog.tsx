@@ -29,10 +29,13 @@ export function MatchDetailsDialog({ userProfile, matchProfile, matchPercentage 
   // Start conversation mutation
   const startConversationMutation = useMutation({
     mutationFn: async (otherUserId: number) => {
+      console.log("Starting conversation with user ID:", otherUserId);
       const res = await apiRequest("POST", "/api/conversations", { otherUserId });
+      console.log("Conversation response:", await res.clone().text());
       return await res.json();
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
+      console.log("Conversation started successfully:", data);
       toast({
         title: "Conversation started",
         description: `You can now message ${matchProfile.fullName}`,
@@ -40,6 +43,7 @@ export function MatchDetailsDialog({ userProfile, matchProfile, matchPercentage 
       setLocation("/messaging");
     },
     onError: (error: Error) => {
+      console.error("Error starting conversation:", error);
       toast({
         title: "Error",
         description: error.message,

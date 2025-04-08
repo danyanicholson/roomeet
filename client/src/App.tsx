@@ -19,7 +19,7 @@ function Router() {
       <ProtectedRoute path="/" component={MatchesPage} />
       <ProtectedRoute path="/profile" component={ProfilePage} />
       <ProtectedRoute path="/matches" component={MatchesPage} />
-      <ProtectedRoute path="/messages" component={MessagingPage} />
+      <ProtectedRoute path="/messaging" component={MessagingPage} />
       <Route component={NotFound} />
     </Switch>
   );
