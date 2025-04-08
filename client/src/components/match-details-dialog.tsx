@@ -11,6 +11,10 @@ import { UserProfile } from "@shared/schema";
 import { Badge } from "@/components/ui/badge";
 import { MatchCompatibility } from "./match-compatibility";
 import { Eye } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
+import { useMutation } from "@tanstack/react-query";
+import { apiRequest } from "@/lib/queryClient";
+import { useLocation } from "wouter";
 
 interface MatchDetailsDialogProps {
   userProfile: UserProfile;
@@ -19,6 +23,36 @@ interface MatchDetailsDialogProps {
 }
 
 export function MatchDetailsDialog({ userProfile, matchProfile, matchPercentage }: MatchDetailsDialogProps) {
+  const { toast } = useToast();
+  const [, setLocation] = useLocation();
+  
+  // Start conversation mutation
+  const startConversationMutation = useMutation({
+    mutationFn: async (otherUserId: number) => {
+      const res = await apiRequest("POST", "/api/conversations", { otherUserId });
+      return await res.json();
+    },
+    onSuccess: () => {
+      toast({
+        title: "Conversation started",
+        description: `You can now message ${matchProfile.fullName}`,
+      });
+      setLocation("/messaging");
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+  
+  // Function to handle starting a conversation
+  const startConversation = (otherUserId: number) => {
+    startConversationMutation.mutate(otherUserId);
+  };
+  
   const formatValue = (key: string, value: string): string => {
     switch (key) {
       case "lifestyle":
@@ -277,7 +311,14 @@ export function MatchDetailsDialog({ userProfile, matchProfile, matchPercentage 
               Interested in connecting with {matchProfile.fullName}? Send them a message to start a conversation.
             </p>
             <div className="flex gap-2">
-              <Button className="flex-1">
+              <Button 
+                className="flex-1"
+                onClick={() => {
+                  if (matchProfile && matchProfile.userId) {
+                    startConversation(matchProfile.userId);
+                  }
+                }}
+              >
                 Send Message
               </Button>
             </div>

@@ -42,16 +42,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post("/api/profile", async (req, res) => {
     console.log("Profile save request, auth status:", req.isAuthenticated(), "user:", req.user);
+    console.log("Profile data received:", JSON.stringify(req.body, null, 2));
+    
     if (!req.isAuthenticated()) {
       res.status(401).send("Unauthorized");
       return;
     }
 
+    // Log idealLocation value specifically
+    console.log("idealLocation value:", req.body.idealLocation);
+
     const parseResult = insertUserProfileSchema.safeParse(req.body);
     if (!parseResult.success) {
+      console.log("Profile validation error:", parseResult.error);
       res.status(400).json(parseResult.error);
       return;
     }
+    console.log("Parsed profile data:", JSON.stringify(parseResult.data, null, 2));
 
     const existingProfile = await storage.getUserProfile(req.user!.id);
     let profile;
@@ -62,6 +69,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       profile = await storage.createUserProfile(req.user!.id, parseResult.data);
     }
 
+    console.log("Saved profile:", JSON.stringify(profile, null, 2));
     res.status(201).json(profile);
   });
 
