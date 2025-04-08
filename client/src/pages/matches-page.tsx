@@ -1,4 +1,7 @@
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation } from "@tanstack/react-query";
+import { apiRequest, queryClient } from "@/lib/queryClient";
+import { useToast } from "@/hooks/use-toast";
+import { useLocation } from "wouter";
 import { useAuth } from "@/hooks/use-auth";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -101,10 +104,38 @@ function calculateMatchPercentage(userProfile: UserProfile | null, otherProfile:
 
 export default function MatchesPage() {
   const { user } = useAuth();
+  const { toast } = useToast();
+  const [, setLocation] = useLocation();
   const [minMatchPercentage, setMinMatchPercentage] = useState<number>(0);
   const [filterByLifestyle, setFilterByLifestyle] = useState<string | null>(null);
   const [filterByCleanliness, setFilterByCleanliness] = useState<string | null>(null);
   const [sortOrder, setSortOrder] = useState<"match" | "budget">("match");
+  
+  // Start conversation mutation
+  const startConversationMutation = useMutation({
+    mutationFn: async (otherUserId: number) => {
+      console.log("Starting conversation with user ID:", otherUserId);
+      const res = await apiRequest("POST", "/api/conversations", { otherUserId });
+      return await res.json();
+    },
+    onSuccess: (data) => {
+      console.log("Conversation started successfully:", data);
+      toast({
+        title: "Conversation started",
+        description: `You can now message your new match`,
+      });
+      // Navigate to messaging page
+      setLocation("/messaging");
+    },
+    onError: (error: Error) => {
+      console.error("Error starting conversation:", error);
+      toast({
+        title: "Error starting conversation",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
 
   // Fetch current user's profile
   const { data: userProfile, isLoading: isLoadingUserProfile } = useQuery({
@@ -439,8 +470,20 @@ export default function MatchesPage() {
                   matchProfile={match}
                   matchPercentage={match.calculatedMatchPercentage}
                 />
-                <Button className="flex-1">
-                  <Heart className="h-4 w-4 mr-2" /> Connect
+                <Button 
+                  className="flex-1"
+                  onClick={() => {
+                    console.log(`Connecting with user ID: ${match.userId}`);
+                    startConversationMutation.mutate(match.userId);
+                  }}
+                  disabled={startConversationMutation.isPending}
+                >
+                  {startConversationMutation.isPending ? (
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  ) : (
+                    <Heart className="h-4 w-4 mr-2" />
+                  )}
+                  {startConversationMutation.isPending ? "Connecting..." : "Connect"}
                 </Button>
               </CardFooter>
             </Card>

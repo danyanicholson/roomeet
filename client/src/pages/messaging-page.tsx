@@ -30,20 +30,24 @@ export default function MessagingPage() {
   const [messageInput, setMessageInput] = useState("");
   
   // Fetch conversations
-  const { data: conversations, isLoading: isLoadingConversations } = useQuery<EnhancedConversation[]>({
+  const { data: conversations, isLoading: isLoadingConversations, refetch: refetchConversations } = useQuery<EnhancedConversation[]>({
     queryKey: ["/api/conversations"],
-    staleTime: 10000, // 10 seconds
-    refetchInterval: 10000, // Poll for new conversations every 10 seconds
+    staleTime: 5000, // 5 seconds
+    refetchInterval: 5000, // Poll for new conversations every 5 seconds
     retry: 3, // Retry 3 times if the query fails
     retryDelay: 1000, // Wait 1 second between retries
   });
   
   // Fetch messages for selected conversation
-  const { data: messages, isLoading: isLoadingMessages } = useQuery<Message[]>({
+  const { 
+    data: messages, 
+    isLoading: isLoadingMessages, 
+    refetch: refetchMessages 
+  } = useQuery<Message[]>({
     queryKey: ["/api/conversations", selectedConversation?.id, "messages"],
     enabled: !!selectedConversation,
-    staleTime: 5000, // 5 seconds
-    refetchInterval: 5000, // Poll for new messages every 5 seconds
+    staleTime: 3000, // 3 seconds
+    refetchInterval: 3000, // Poll for new messages every 3 seconds
     retry: 3, // Retry 3 times if the query fails
     retryDelay: 1000, // Wait 1 second between retries
   });
@@ -62,44 +66,32 @@ export default function MessagingPage() {
       };
       
       const res = await apiRequest("POST", "/api/messages", message);
-      
-      try {
-        const clone = res.clone();
-        const textResponse = await clone.text();
-        console.log("Send message response text:", textResponse);
-        
-        // Try to parse the response as JSON
-        const jsonData = JSON.parse(textResponse);
-        console.log("Parsed message data:", jsonData);
-        return jsonData;
-      } catch (parseError) {
-        console.error("Error parsing response:", parseError);
-        // Fall back to the original response
-        return await res.json();
-      }
+      return await res.json();
     },
     onSuccess: (data) => {
       console.log("Message sent successfully:", data);
-      // Clear input and refresh messages
+      // Clear input
       setMessageInput("");
       
-      // Force an immediate refetch of messages
+      // Explicitly call refetch functions
+      refetchMessages();
+      refetchConversations();
+      
+      // Additionally, invalidate queries to ensure cache is updated
       queryClient.invalidateQueries({ 
-        queryKey: ["/api/conversations", selectedConversation?.id, "messages"],
-        refetchType: 'active',
+        queryKey: ["/api/conversations", selectedConversation?.id, "messages"]
       });
       queryClient.invalidateQueries({ 
-        queryKey: ["/api/conversations"],
-        refetchType: 'active', 
+        queryKey: ["/api/conversations"]
       });
       
-      // Add a small delay and trigger another refetch to ensure messages update
-      setTimeout(() => {
-        queryClient.invalidateQueries({ 
-          queryKey: ["/api/conversations", selectedConversation?.id, "messages"],
-          refetchType: 'all',
-        });
-      }, 500);
+      // Immediately add the new message to the cache to avoid waiting for refetch
+      if (messages) {
+        queryClient.setQueryData(
+          ["/api/conversations", selectedConversation?.id, "messages"], 
+          [...messages, data]
+        );
+      }
     },
     onError: (error: Error) => {
       console.error("Failed to send message:", error);
@@ -114,14 +106,36 @@ export default function MessagingPage() {
   // Start new conversation mutation
   const startConversationMutation = useMutation({
     mutationFn: async (otherUserId: number) => {
+      console.log("Starting conversation with user ID:", otherUserId);
       const res = await apiRequest("POST", "/api/conversations", { otherUserId });
       return await res.json();
     },
     onSuccess: (newConversation: EnhancedConversation) => {
+      console.log("Conversation created successfully:", newConversation);
+      
+      // Immediately update the cache
+      queryClient.setQueryData(
+        ["/api/conversations"],
+        (oldData: EnhancedConversation[] | undefined) => 
+          oldData ? [newConversation, ...oldData] : [newConversation]
+      );
+      
+      // Also invalidate to ensure we get fresh data
       queryClient.invalidateQueries({ queryKey: ["/api/conversations"] });
+      
+      // Explicitly trigger a refetch
+      refetchConversations();
+      
+      // Set as selected conversation
       setSelectedConversation(newConversation);
+      
+      toast({
+        title: "Conversation started",
+        description: `You can now message ${newConversation.otherUser.fullName || newConversation.otherUser.username}`,
+      });
     },
     onError: (error: Error) => {
+      console.error("Failed to start conversation:", error);
       toast({
         title: "Failed to start conversation",
         description: error.message,
