@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useAuth } from "@/hooks/use-auth";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
@@ -38,6 +38,9 @@ export default function MessagingPage() {
     retryDelay: 1000, // Wait 1 second between retries
   });
   
+  // Create a ref for the messages container to enable auto-scrolling
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+  
   // Fetch messages for selected conversation
   const { 
     data: messages, 
@@ -46,11 +49,18 @@ export default function MessagingPage() {
   } = useQuery<Message[]>({
     queryKey: ["/api/conversations", selectedConversation?.id, "messages"],
     enabled: !!selectedConversation,
-    staleTime: 3000, // 3 seconds
-    refetchInterval: 3000, // Poll for new messages every 3 seconds
+    staleTime: 1000, // 1 second
+    refetchInterval: 1500, // Poll for new messages every 1.5 seconds
     retry: 3, // Retry 3 times if the query fails
     retryDelay: 1000, // Wait 1 second between retries
   });
+  
+  // Scroll to the bottom of the messages container whenever messages change
+  useEffect(() => {
+    if (messagesEndRef.current) {
+      messagesEndRef.current.scrollIntoView({ behavior: 'smooth' });
+    }
+  }, [messages]);
   
   // Send message mutation
   const sendMessageMutation = useMutation({
@@ -73,25 +83,32 @@ export default function MessagingPage() {
       // Clear input
       setMessageInput("");
       
-      // Explicitly call refetch functions
-      refetchMessages();
-      refetchConversations();
-      
-      // Additionally, invalidate queries to ensure cache is updated
-      queryClient.invalidateQueries({ 
-        queryKey: ["/api/conversations", selectedConversation?.id, "messages"]
-      });
-      queryClient.invalidateQueries({ 
-        queryKey: ["/api/conversations"]
-      });
-      
-      // Immediately add the new message to the cache to avoid waiting for refetch
+      // Optimistically update the UI by adding new message to the cache immediately
       if (messages) {
+        const updatedMessages = [...messages, data];
+        console.log("Updated messages after send:", updatedMessages);
+        
+        // Update the cache with the new message
         queryClient.setQueryData(
           ["/api/conversations", selectedConversation?.id, "messages"], 
-          [...messages, data]
+          updatedMessages
         );
       }
+      
+      // Wait a moment for UI to update before refetching
+      setTimeout(() => {
+        // Explicitly call refetch functions after a short delay
+        refetchMessages();
+        refetchConversations();
+        
+        // Invalidate relevant queries
+        queryClient.invalidateQueries({ 
+          queryKey: ["/api/conversations", selectedConversation?.id, "messages"]
+        });
+        queryClient.invalidateQueries({ 
+          queryKey: ["/api/conversations"]
+        });
+      }, 300);
     },
     onError: (error: Error) => {
       console.error("Failed to send message:", error);
@@ -341,6 +358,8 @@ export default function MessagingPage() {
                               </div>
                             );
                           })}
+                          {/* Invisible element to scroll to */}
+                          <div ref={messagesEndRef} />
                         </div>
                       ) : (
                         <div className="flex items-center justify-center h-full">

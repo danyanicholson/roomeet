@@ -345,21 +345,41 @@ export class MemStorage implements IStorage {
       return [];
     }
     
+    console.log(`Found conversation: ${JSON.stringify(conversation)}`);
+    console.log(`Looking for messages between users ${conversation.user1Id} and ${conversation.user2Id}`);
+    
     const allMessages = Array.from(this.messages.values());
     console.log(`Total messages in storage: ${allMessages.length}`);
     
+    // Log message IDs for debugging
+    if (allMessages.length > 0) {
+      console.log('All message IDs in storage:', allMessages.map(m => m.id).join(', '));
+    }
+    
     const conversationMessages = allMessages
-      .filter(message => 
-        // Find messages that belong to the specific conversation
-        // by checking if they involve both users of the conversation
-        (
+      .filter(message => {
+        const isConversationMessage = (
           (message.senderId === conversation.user1Id && message.receiverId === conversation.user2Id) ||
           (message.senderId === conversation.user2Id && message.receiverId === conversation.user1Id)
-        )
-      )
+        );
+        
+        if (isConversationMessage) {
+          console.log(`Message ${message.id} belongs to conversation ${conversationId}:`, JSON.stringify(message));
+        }
+        
+        return isConversationMessage;
+      })
       .sort((a, b) => new Date(a.createdAt || Date.now()).getTime() - new Date(b.createdAt || Date.now()).getTime());
     
     console.log(`Found ${conversationMessages.length} messages for conversation ${conversationId}`);
+    
+    if (conversationMessages.length > 0) {
+      console.log('Returning the following sorted messages:');
+      conversationMessages.forEach(message => {
+        console.log(`- Message ID ${message.id}: from user ${message.senderId} to ${message.receiverId}: "${message.content}" at ${message.createdAt}`);
+      });
+    }
+    
     return conversationMessages;
   }
   
