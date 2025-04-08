@@ -4,8 +4,16 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { UserProfile } from "@shared/schema";
-import { Loader2, UserRound, MapPin, Banknote, Heart } from "lucide-react";
+import { Loader2, UserRound, MapPin, Banknote, Heart, Filter } from "lucide-react";
 import { Link } from "wouter";
+import { MatchDetailsDialog } from "@/components/match-details-dialog";
+import { MatchGauge } from "@/components/match-gauge";
+import { useState } from "react";
+
+// Define Match type with calculated percentage
+interface MatchWithPercentage extends UserProfile {
+  calculatedMatchPercentage: number;
+}
 
 // Helper to calculate match percentage based on common interests, hobbies, etc.
 function calculateMatchPercentage(userProfile: UserProfile | null, otherProfile: UserProfile): number {
@@ -93,6 +101,10 @@ function calculateMatchPercentage(userProfile: UserProfile | null, otherProfile:
 
 export default function MatchesPage() {
   const { user } = useAuth();
+  const [minMatchPercentage, setMinMatchPercentage] = useState<number>(0);
+  const [filterByLifestyle, setFilterByLifestyle] = useState<string | null>(null);
+  const [filterByCleanliness, setFilterByCleanliness] = useState<string | null>(null);
+  const [sortOrder, setSortOrder] = useState<"match" | "budget">("match");
 
   // Fetch current user's profile
   const { data: userProfile, isLoading: isLoadingUserProfile } = useQuery({
@@ -147,12 +159,28 @@ export default function MatchesPage() {
     );
   }
 
-  // Sort matches by match percentage in descending order
-  const sortedMatches = [...(matches || [])].sort((a, b) => {
-    const matchA = calculateMatchPercentage(userProfile, a);
-    const matchB = calculateMatchPercentage(userProfile, b);
-    return matchB - matchA;
-  });
+  // Filter and sort matches
+  const filteredAndSortedMatches = [...(matches || [])]
+    // First calculate match percentages for each
+    .map(match => ({
+      ...match,
+      calculatedMatchPercentage: calculateMatchPercentage(userProfile, match)
+    }))
+    // Apply filters
+    .filter(match => match.calculatedMatchPercentage >= minMatchPercentage)
+    .filter(match => !filterByLifestyle || match.lifestyle === filterByLifestyle)
+    .filter(match => !filterByCleanliness || match.cleanliness === filterByCleanliness)
+    // Sort by selected criteria
+    .sort((a, b) => {
+      if (sortOrder === "match") {
+        return b.calculatedMatchPercentage - a.calculatedMatchPercentage;
+      } else {
+        // Sort by budget (lowest first)
+        const budgetA = a.budget || 0;
+        const budgetB = b.budget || 0;
+        return budgetA - budgetB;
+      }
+    });
 
   return (
     <div className="container mx-auto px-4 py-8">
@@ -162,44 +190,143 @@ export default function MatchesPage() {
           Based on your profile information, we've found these potential roommates that might be compatible with you
         </p>
       </div>
+      
+      {/* Filter Controls */}
+      <div className="bg-muted/30 rounded-lg p-4 mb-8">
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-lg font-medium flex items-center">
+            <Filter className="w-5 h-5 mr-2" />
+            Filter Results
+          </h2>
+          <Button 
+            variant="ghost" 
+            size="sm"
+            onClick={() => {
+              setMinMatchPercentage(0);
+              setFilterByLifestyle(null);
+              setFilterByCleanliness(null);
+              setSortOrder("match");
+            }}
+          >
+            Reset All
+          </Button>
+        </div>
+        
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          {/* Min Match Percentage */}
+          <div className="space-y-2">
+            <div className="flex justify-between">
+              <label className="text-sm font-medium">Min Match Percentage</label>
+              <span className="text-sm">{minMatchPercentage}%</span>
+            </div>
+            <input 
+              type="range" 
+              min="0" 
+              max="90" 
+              step="10"
+              value={minMatchPercentage}
+              onChange={e => setMinMatchPercentage(parseInt(e.target.value))}
+              className="w-full"
+            />
+          </div>
+          
+          {/* Lifestyle Filter */}
+          <div className="space-y-2">
+            <label className="text-sm font-medium">Lifestyle</label>
+            <select 
+              value={filterByLifestyle || ""}
+              onChange={e => setFilterByLifestyle(e.target.value || null)}
+              className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+            >
+              <option value="">Any Lifestyle</option>
+              <option value="early-bird">Early Bird</option>
+              <option value="night-owl">Night Owl</option>
+              <option value="social">Social</option>
+              <option value="quiet">Quiet</option>
+            </select>
+          </div>
+          
+          {/* Cleanliness Filter */}
+          <div className="space-y-2">
+            <label className="text-sm font-medium">Cleanliness</label>
+            <select 
+              value={filterByCleanliness || ""}
+              onChange={e => setFilterByCleanliness(e.target.value || null)}
+              className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+            >
+              <option value="">Any Cleanliness</option>
+              <option value="very-clean">Very Clean</option>
+              <option value="clean">Clean</option>
+              <option value="casual">Casual</option>
+              <option value="messy">Messy</option>
+            </select>
+          </div>
+          
+          {/* Sort Order */}
+          <div className="space-y-2">
+            <label className="text-sm font-medium">Sort By</label>
+            <select 
+              value={sortOrder}
+              onChange={e => setSortOrder(e.target.value as "match" | "budget")}
+              className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+            >
+              <option value="match">Match Percentage</option>
+              <option value="budget">Budget (Low to High)</option>
+            </select>
+          </div>
+        </div>
+        
+        {/* Results summary */}
+        <div className="mt-4 text-sm text-muted-foreground">
+          Showing {filteredAndSortedMatches.length} of {matches?.length || 0} potential roommates
+        </div>
+      </div>
 
-      {sortedMatches.length === 0 ? (
+      {filteredAndSortedMatches.length === 0 ? (
         <div className="text-center py-12">
           <UserRound className="w-12 h-12 mx-auto mb-4 text-muted-foreground" />
           <h2 className="text-xl font-semibold mb-2">No Matches Found</h2>
           <p className="text-muted-foreground max-w-md mx-auto mb-6">
-            We couldn't find any potential roommates yet. Check back later as more people join the platform.
+            {matches && matches.length > 0 
+              ? "Try adjusting your filter settings to see more potential matches."
+              : "We couldn't find any potential roommates yet. Check back later as more people join the platform."}
           </p>
-          <Link href="/profile">
-            <Button variant="outline">Update Your Profile</Button>
-          </Link>
+          {matches && matches.length === 0 ? (
+            <Link href="/profile">
+              <Button variant="outline">Update Your Profile</Button>
+            </Link>
+          ) : (
+            <Button variant="outline" onClick={() => {
+              setMinMatchPercentage(0);
+              setFilterByLifestyle(null);
+              setFilterByCleanliness(null);
+            }}>
+              Reset Filters
+            </Button>
+          )}
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {sortedMatches.map((match) => {
-            const matchPercentage = calculateMatchPercentage(userProfile, match);
-            
-            return (
-              <Card key={match.id} className="h-full flex flex-col">
-                <CardHeader>
-                  <div className="flex justify-between items-start">
-                    <div>
-                      <CardTitle>{match.fullName}</CardTitle>
-                      {match.occupation && (
-                        <CardDescription>{match.occupation}</CardDescription>
-                      )}
-                    </div>
-                    <Badge 
-                      variant={matchPercentage >= 75 ? "default" : "secondary"}
-                      className="text-sm"
-                    >
-                      {matchPercentage}% Match
-                    </Badge>
+          {filteredAndSortedMatches.map((match) => (
+            <Card key={match.id} className="h-full flex flex-col">
+              <CardHeader className="pb-2">
+                <div className="flex justify-between items-start mb-2">
+                  <div>
+                    <CardTitle className="text-xl">{match.fullName}</CardTitle>
+                    {match.occupation && (
+                      <CardDescription>{match.occupation}</CardDescription>
+                    )}
                   </div>
-                </CardHeader>
-                <CardContent className="flex-1">
-                  <div className="space-y-4">
-                    {/* Basic Info */}
+                  <MatchGauge 
+                    percentage={match.calculatedMatchPercentage} 
+                    size="sm"
+                  />
+                </div>
+              </CardHeader>
+              <CardContent className="flex-1 pt-2">
+                <div className="space-y-4">
+                  {/* Basic Info */}
+                  <div className="flex justify-between items-center">
                     <div className="space-y-2">
                       {match.age && <div className="text-sm">Age: {match.age}</div>}
                       
@@ -217,57 +344,59 @@ export default function MatchesPage() {
                         </div>
                       )}
                     </div>
+                  </div>
 
-                    {/* Preferences */}
-                    <div className="grid grid-cols-2 gap-2 text-sm">
-                      {match.lifestyle && (
-                        <div>
-                          <span className="text-muted-foreground">Lifestyle:</span>{" "}
-                          {match.lifestyle === "early-bird" ? "Early Bird" : 
-                           match.lifestyle === "night-owl" ? "Night Owl" : 
-                           match.lifestyle === "social" ? "Social" : "Quiet"}
-                        </div>
-                      )}
-                      
-                      {match.cleanliness && (
-                        <div>
-                          <span className="text-muted-foreground">Cleanliness:</span>{" "}
-                          {match.cleanliness === "very-clean" ? "Very Clean" : 
-                           match.cleanliness === "clean" ? "Clean" : 
-                           match.cleanliness === "casual" ? "Casual" : "Messy"}
-                        </div>
-                      )}
-                      
-                      {match.smokingPreference && (
-                        <div>
-                          <span className="text-muted-foreground">Smoking:</span>{" "}
-                          {match.smokingPreference === "non-smoker" ? "Non-Smoker" : 
-                           match.smokingPreference === "outside-only" ? "Outside Only" : "Smoker"}
-                        </div>
-                      )}
-                      
-                      {match.petPreference && (
-                        <div>
-                          <span className="text-muted-foreground">Pets:</span>{" "}
-                          {match.petPreference === "no-pets" ? "No Pets" : 
-                           match.petPreference === "has-pets" ? "Has Pets" : "Pet Friendly"}
-                        </div>
-                      )}
-                    </div>
+                  {/* Preferences */}
+                  <div className="grid grid-cols-2 gap-2 text-sm">
+                    {match.lifestyle && (
+                      <div className={filterByLifestyle === match.lifestyle ? "font-medium" : ""}>
+                        <span className="text-muted-foreground">Lifestyle:</span>{" "}
+                        {match.lifestyle === "early-bird" ? "Early Bird" : 
+                         match.lifestyle === "night-owl" ? "Night Owl" : 
+                         match.lifestyle === "social" ? "Social" : "Quiet"}
+                      </div>
+                    )}
+                    
+                    {match.cleanliness && (
+                      <div className={filterByCleanliness === match.cleanliness ? "font-medium" : ""}>
+                        <span className="text-muted-foreground">Cleanliness:</span>{" "}
+                        {match.cleanliness === "very-clean" ? "Very Clean" : 
+                         match.cleanliness === "clean" ? "Clean" : 
+                         match.cleanliness === "casual" ? "Casual" : "Messy"}
+                      </div>
+                    )}
+                    
+                    {match.smokingPreference && (
+                      <div>
+                        <span className="text-muted-foreground">Smoking:</span>{" "}
+                        {match.smokingPreference === "non-smoker" ? "Non-Smoker" : 
+                         match.smokingPreference === "outside-only" ? "Outside Only" : "Smoker"}
+                      </div>
+                    )}
+                    
+                    {match.petPreference && (
+                      <div>
+                        <span className="text-muted-foreground">Pets:</span>{" "}
+                        {match.petPreference === "no-pets" ? "No Pets" : 
+                         match.petPreference === "has-pets" ? "Has Pets" : "Pet Friendly"}
+                      </div>
+                    )}
+                  </div>
 
-                    {/* Hobbies and Interests */}
+                  {/* Hobbies and Interests */}
+                  <div className="grid grid-cols-2 gap-4">
                     {match.hobbies && match.hobbies.length > 0 && (
                       <div>
                         <div className="text-sm font-medium mb-1">Hobbies</div>
                         <div className="flex flex-wrap gap-1">
-                          {match.hobbies.slice(0, 5).map((hobby: string, index: number) => (
+                          {match.hobbies.slice(0, 3).map((hobby: string, index: number) => (
                             <Badge key={index} variant="outline" className="text-xs">
                               {hobby}
                             </Badge>
                           ))}
-                          {match.hobbies.length > 5 && (
+                          {match.hobbies.length > 3 && (
                             <Badge variant="outline" className="text-xs">
-                              +{match.hobbies.length - 5} more
+                              +{match.hobbies.length - 3} more
                             </Badge>
                           )}
                         </div>
@@ -278,42 +407,44 @@ export default function MatchesPage() {
                       <div>
                         <div className="text-sm font-medium mb-1">Interests</div>
                         <div className="flex flex-wrap gap-1">
-                          {match.interests.slice(0, 5).map((interest: string, index: number) => (
+                          {match.interests.slice(0, 3).map((interest: string, index: number) => (
                             <Badge key={index} variant="outline" className="text-xs">
                               {interest}
                             </Badge>
                           ))}
-                          {match.interests.length > 5 && (
+                          {match.interests.length > 3 && (
                             <Badge variant="outline" className="text-xs">
-                              +{match.interests.length - 5} more
+                              +{match.interests.length - 3} more
                             </Badge>
                           )}
                         </div>
                       </div>
                     )}
-
-                    {/* Additional Info */}
-                    {match.additionalInfo && (
-                      <div>
-                        <div className="text-sm font-medium mb-1">About</div>
-                        <p className="text-sm text-muted-foreground line-clamp-3">
-                          {match.additionalInfo}
-                        </p>
-                      </div>
-                    )}
                   </div>
-                </CardContent>
-                <CardFooter className="flex gap-2">
-                  <Button className="flex-1" variant="outline">
-                    View Profile
-                  </Button>
-                  <Button className="flex-1">
-                    <Heart className="h-4 w-4 mr-2" /> Connect
-                  </Button>
-                </CardFooter>
-              </Card>
-            );
-          })}
+
+                  {/* Additional Info */}
+                  {match.additionalInfo && (
+                    <div>
+                      <div className="text-sm font-medium mb-1">About</div>
+                      <p className="text-sm text-muted-foreground line-clamp-2">
+                        {match.additionalInfo}
+                      </p>
+                    </div>
+                  )}
+                </div>
+              </CardContent>
+              <CardFooter className="flex gap-2">
+                <MatchDetailsDialog 
+                  userProfile={userProfile}
+                  matchProfile={match}
+                  matchPercentage={match.calculatedMatchPercentage}
+                />
+                <Button className="flex-1">
+                  <Heart className="h-4 w-4 mr-2" /> Connect
+                </Button>
+              </CardFooter>
+            </Card>
+          ))}
         </div>
       )}
     </div>
