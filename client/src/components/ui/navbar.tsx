@@ -9,7 +9,7 @@ import {
   DropdownMenuTrigger,
   DropdownMenuSeparator
 } from "./dropdown-menu";
-import { UserRound, Users, Home } from "lucide-react";
+import { UserRound, Users, MessageSquare } from "lucide-react";
 
 export default function Navbar() {
   const { user, logoutMutation } = useAuth();
@@ -46,6 +46,16 @@ export default function Navbar() {
                 <span>Profile</span>
               </Button>
             </Link>
+            <Link href="/messages">
+              <Button 
+                variant={location === "/messages" ? "default" : "ghost"}
+                size="sm"
+                className="flex gap-1 items-center"
+              >
+                <MessageSquare className="h-4 w-4" />
+                <span>Messages</span>
+              </Button>
+            </Link>
           </div>
         </div>
 
@@ -77,6 +87,14 @@ export default function Navbar() {
                   <div className="flex items-center cursor-pointer w-full">
                     <Users className="w-4 h-4 mr-2" />
                     Matches
+                  </div>
+                </Link>
+              </DropdownMenuItem>
+              <DropdownMenuItem asChild>
+                <Link href="/messages">
+                  <div className="flex items-center cursor-pointer w-full">
+                    <MessageSquare className="w-4 h-4 mr-2" />
+                    Messages
                   </div>
                 </Link>
               </DropdownMenuItem>

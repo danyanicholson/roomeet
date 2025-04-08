@@ -83,6 +83,7 @@ export default function ProfilePage() {
       age: undefined,
       occupation: "",
       location: "",
+      idealLocation: "",
       budget: undefined,
       hobbies: [],
       interests: [],
@@ -104,6 +105,7 @@ export default function ProfilePage() {
         age: profile.age ?? undefined,
         occupation: profile.occupation ?? "",
         location: profile.location ?? "",
+        idealLocation: profile.idealLocation ?? "",
         budget: profile.budget ?? undefined,
         hobbies: profile.hobbies ?? [],
         interests: profile.interests ?? [],
@@ -121,6 +123,7 @@ export default function ProfilePage() {
         age: undefined,
         occupation: "",
         location: "",
+        idealLocation: "",
         budget: undefined,
         hobbies: [],
         interests: [],
@@ -291,7 +294,7 @@ export default function ProfilePage() {
                       name="location"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>Location</FormLabel>
+                          <FormLabel>Current Location</FormLabel>
                           <FormControl>
                             <Input {...field} value={field.value || ""} placeholder="City, State" />
                           </FormControl>
@@ -300,6 +303,22 @@ export default function ProfilePage() {
                       )}
                     />
 
+                    <FormField
+                      control={form.control}
+                      name="idealLocation"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Ideal Location</FormLabel>
+                          <FormControl>
+                            <Input {...field} value={field.value || ""} placeholder="City, State" />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <FormField
                       control={form.control}
                       name="budget"

@@ -78,6 +78,41 @@ export function MatchDetailsDialog({ userProfile, matchProfile, matchPercentage 
         </DialogHeader>
         
         <div className="space-y-6 mt-4">
+          {/* About User Section */}
+          <div>
+            <h3 className="text-lg font-medium mb-3">About {matchProfile.fullName}</h3>
+            <div className="grid grid-cols-2 gap-4 mb-4">
+              <div className="space-y-2">
+                <div className="text-sm">
+                  <span className="font-medium">Age:</span> {matchProfile.age || 'Not specified'}
+                </div>
+                <div className="text-sm">
+                  <span className="font-medium">Occupation:</span> {matchProfile.occupation || 'Not specified'}
+                </div>
+                <div className="text-sm">
+                  <span className="font-medium">Budget:</span> ${matchProfile.budget || 'Not specified'}
+                </div>
+              </div>
+              <div className="space-y-2">
+                <div className="text-sm">
+                  <span className="font-medium">Current Location:</span> {matchProfile.location || 'Not specified'}
+                </div>
+                <div className="text-sm">
+                  <span className="font-medium">Ideal Location:</span> {matchProfile.idealLocation || 'Not specified'}
+                </div>
+                <div className="text-sm">
+                  <span className="font-medium">Lifestyle:</span> {matchProfile.lifestyle ? formatValue("lifestyle", matchProfile.lifestyle) : 'Not specified'}
+                </div>
+              </div>
+            </div>
+            {matchProfile.additionalInfo && (
+              <div className="mt-2">
+                <span className="font-medium text-sm">Additional Info:</span>
+                <p className="text-sm mt-1">{matchProfile.additionalInfo}</p>
+              </div>
+            )}
+          </div>
+
           {/* Match Compatibility Visualization */}
           <div className="bg-muted/50 rounded-lg p-4">
             <MatchCompatibility userProfile={userProfile} otherProfile={matchProfile} />
@@ -117,6 +152,22 @@ export function MatchDetailsDialog({ userProfile, matchProfile, matchPercentage 
                 </div>
               )}
 
+              {/* Location Matching */}
+              {userProfile.location && matchProfile.location && (
+                <div className="flex items-center gap-2">
+                  <Badge variant="outline">Location</Badge>
+                  <span>
+                    {userProfile.location.toLowerCase() === matchProfile.location.toLowerCase()
+                      ? "You both currently live in the same area"
+                      : userProfile.idealLocation && userProfile.idealLocation.toLowerCase() === matchProfile.location.toLowerCase()
+                        ? `${matchProfile.fullName} lives in your ideal location`
+                        : matchProfile.idealLocation && matchProfile.idealLocation.toLowerCase() === userProfile.location.toLowerCase()
+                          ? `You live in ${matchProfile.fullName}'s ideal location`
+                          : "Different locations"}
+                  </span>
+                </div>
+              )}
+              
               {/* Budget Similarity */}
               {userProfile.budget && matchProfile.budget && (
                 <div className="flex items-center gap-2">
@@ -198,12 +249,20 @@ export function MatchDetailsDialog({ userProfile, matchProfile, matchPercentage 
                   <span>You prefer {formatValue("petPreference", userProfile.petPreference)}, they prefer {formatValue("petPreference", matchProfile.petPreference)}</span>
                 </div>
               )}
+              
+              {userProfile.location && matchProfile.location && userProfile.location.toLowerCase() !== matchProfile.location.toLowerCase() && (
+                <div className="flex items-center gap-2">
+                  <Badge variant="outline" className="bg-red-100">Location</Badge>
+                  <span>You live in {userProfile.location}, they live in {matchProfile.location}</span>
+                </div>
+              )}
 
               {/* If no differences were found */}
               {((!userProfile.lifestyle || !matchProfile.lifestyle || userProfile.lifestyle === matchProfile.lifestyle) &&
                 (!userProfile.cleanliness || !matchProfile.cleanliness || userProfile.cleanliness === matchProfile.cleanliness) &&
                 (!userProfile.smokingPreference || !matchProfile.smokingPreference || userProfile.smokingPreference === matchProfile.smokingPreference) &&
-                (!userProfile.petPreference || !matchProfile.petPreference || userProfile.petPreference === matchProfile.petPreference)) && (
+                (!userProfile.petPreference || !matchProfile.petPreference || userProfile.petPreference === matchProfile.petPreference) &&
+                (!userProfile.location || !matchProfile.location || userProfile.location.toLowerCase() === matchProfile.location.toLowerCase())) && (
                 <div className="text-sm text-muted-foreground">
                   Based on available information, you don't have any major lifestyle differences!
                 </div>

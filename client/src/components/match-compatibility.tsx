@@ -195,6 +195,54 @@ export function MatchCompatibility({ userProfile, otherProfile }: MatchCompatibi
     };
   };
 
+  // Calculate location match
+  const calculateLocationMatch = (): MatchCategoryScore => {
+    // If either profile lacks location info, we can't calculate a match
+    if (!userProfile.location || !otherProfile.location) {
+      return {
+        category: "Location",
+        score: 0,
+        maxScore: 0,
+        tooltip: "Location information is missing"
+      };
+    }
+
+    // Check if user's current location matches other's current location
+    const currentLocationMatch = userProfile.location.toLowerCase() === otherProfile.location.toLowerCase();
+    
+    // Check if user's ideal location matches other's current location
+    const idealLocationMatch = userProfile.idealLocation && 
+      userProfile.idealLocation.toLowerCase() === otherProfile.location.toLowerCase();
+      
+    // Check if user's current location matches other's ideal location
+    const reverseIdealLocationMatch = otherProfile.idealLocation && 
+      userProfile.location.toLowerCase() === otherProfile.idealLocation.toLowerCase();
+    
+    let score = 0;
+    let tooltip = "";
+    
+    // Assign score based on different match types
+    if (currentLocationMatch) {
+      score = 15;
+      tooltip = "You are both currently in the same location!";
+    } else if (idealLocationMatch) {
+      score = 10;
+      tooltip = `${otherProfile.fullName} is already in your ideal location.`;
+    } else if (reverseIdealLocationMatch) {
+      score = 10;
+      tooltip = `You're in ${otherProfile.fullName}'s ideal location.`;
+    } else {
+      tooltip = "Your locations don't match";
+    }
+    
+    return {
+      category: "Location",
+      score,
+      maxScore: 15,
+      tooltip
+    };
+  };
+
   // Calculate all matches
   const categories: MatchCategoryScore[] = [
     calculateLifestyleMatch(),
@@ -203,7 +251,8 @@ export function MatchCompatibility({ userProfile, otherProfile }: MatchCompatibi
     calculatePetMatch(),
     calculateHobbyMatch(),
     calculateInterestMatch(),
-    calculateRoommateQualityMatch()
+    calculateRoommateQualityMatch(),
+    calculateLocationMatch()
   ].filter(category => category.maxScore > 0); // Only include categories with data
 
   // Calculate overall match percentage

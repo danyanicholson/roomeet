@@ -10,6 +10,7 @@ import { ProtectedRoute } from "./lib/protected-route";
 import Navbar from "@/components/ui/navbar";
 import ProfilePage from "@/pages/profile-page";
 import MatchesPage from "@/pages/matches-page";
+import MessagingPage from "@/pages/messaging-page";
 
 function Router() {
   return (
@@ -18,6 +19,7 @@ function Router() {
       <ProtectedRoute path="/" component={MatchesPage} />
       <ProtectedRoute path="/profile" component={ProfilePage} />
       <ProtectedRoute path="/matches" component={MatchesPage} />
+      <ProtectedRoute path="/messages" component={MessagingPage} />
       <Route component={NotFound} />
     </Switch>
   );
