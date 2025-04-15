@@ -11,6 +11,8 @@ import Navbar from "@/components/ui/navbar";
 import ProfilePage from "@/pages/profile-page";
 import MatchesPage from "@/pages/matches-page";
 import MessagingPage from "@/pages/messaging-page";
+import { useEffect, useState } from 'react';
+import { supabase } from '/Users/jadynfleming/Downloads/roomeet/client/src/supabaseClient.ts'; // adjust path as needed
 
 function Router() {
   return (
@@ -25,13 +27,30 @@ function Router() {
   );
 }
 
-function App() {
+function App() 
+{
+
+  const [users, setUsers] = useState<any[]>([]);
+
+  useEffect(() => {
+    async function fetchUsers() {
+      const { data, error } = await supabase.from('users').select('*');
+      if (error) console.error(error);
+      else setUsers(data || []);
+    }
+    fetchUsers();
+  }, []);
+
   return (
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
         <Navbar />
         <Router />
         <Toaster />
+        <div>
+          <h1>Supabase Users</h1>
+          <pre>{JSON.stringify(users, null, 2)}</pre>
+        </div>
       </AuthProvider>
     </QueryClientProvider>
   );
