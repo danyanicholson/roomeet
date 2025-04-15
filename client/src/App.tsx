@@ -12,7 +12,7 @@ import ProfilePage from "@/pages/profile-page";
 import MatchesPage from "@/pages/matches-page";
 import MessagingPage from "@/pages/messaging-page";
 import { useEffect, useState } from 'react';
-import { supabase } from '/Users/jadynfleming/Downloads/roomeet/client/src/supabaseClient.ts'; // adjust path as needed
+import { supabase } from './supabaseClient.ts'; // adjust path as needed
 
 function Router() {
   return (
@@ -34,10 +34,17 @@ function App()
 
   useEffect(() => {
     async function fetchUsers() {
-      const { data, error } = await supabase.from('users').select('*');
-      if (error) console.error(error);
-      else setUsers(data || []);
+      const { data, error } = await supabase.from('Users').select('*');
+      if (error) 
+        {
+          console.error("Supabase error:", error);
+        }
+      else 
+        {
+          console.log("Users data:", data);
+        }
     }
+
     fetchUsers();
   }, []);
 
